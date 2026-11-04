@@ -14,9 +14,6 @@ map("v", "K", ":m '<-2<CR>gv=gv", opts)
 map("n", "<C-d>", "<C-d>zz", opts)
 map("n", "<C-u>", "<C-u>zz", opts)
 
-map("n", "n", "nzzzv", opts)
-map("n", "N", "Nzzzv", opts)
-
 map("n", "<leader>y", '"+y', opts)
 map("v", "<leader>y", '"+y', opts)
 map("n", "<leader>Y", '"+Y', opts)
@@ -34,8 +31,6 @@ map("n", "qk", ":cprev<cr>", opts)
 
 map("n", "<leader>fe", vim.diagnostic.open_float)
 
-vim.diagnostic.config({ virtual_text = true, virtual_lines = false })
-
 map("n", "<leader>e", require("oil").toggle_float)
 
 vim.api.nvim_create_autocmd("TextYankPost", {
@@ -46,14 +41,10 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 	end,
 })
 
--- vim.api.nvim_create_autocmd("BufWritePre", {
--- 	callback = function()
--- 		vim.lsp.buf.format()
--- 	end,
--- })
-
 vim.diagnostic.config({
 	virtual_text = { current_line = true },
+	virtual_lines = false,
+	float = { border = "rounded" },
 })
 
 vim.o.winborder = "rounded"

@@ -14,6 +14,8 @@
       "NVIM_NIX_MANAGED"
       "1"
     ];
+    # Keep editor dependencies available even when this module is used without
+    # the shared shell tools or Sway configuration.
     extraPackages = with pkgs; [
       curl
       unzip

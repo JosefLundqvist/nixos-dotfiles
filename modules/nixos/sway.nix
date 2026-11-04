@@ -7,10 +7,8 @@
     wrapperFeatures.gtk = true;
     extraPackages = with pkgs; [
       brightnessctl
-      ghostty
       grim
       pulseaudio
-      rofi
       swayidle
       swaylock
     ];

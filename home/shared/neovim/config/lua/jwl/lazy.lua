@@ -70,7 +70,3 @@ require("lazy").setup({
 		{ import = "jwl.plugins" },
 	},
 })
-
-vim.diagnostic.config({
-	float = { border = "rounded" },
-})

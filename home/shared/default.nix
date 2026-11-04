@@ -3,6 +3,7 @@
   imports = [
     ./neovim
     ./sway.nix
+    ./ghostty.nix
   ];
 
   programs.zsh = {
@@ -22,7 +23,6 @@
     jq
     lazygit
     ripgrep
-    wl-clipboard
     nerd-fonts.iosevka
   ];
 }

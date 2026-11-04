@@ -2,7 +2,6 @@
 {
   imports = [
     ./hardware-configuration.nix
-    ../../modules/nixos/hyperv.nix
   ];
 
   networking.hostName = "nixlab";

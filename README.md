@@ -7,13 +7,16 @@ Flake-based NixOS and Home Manager configuration for the `josef` account. The cu
 | Path | Responsibility |
 | --- | --- |
 | `flake.nix`, `flake.lock` | Pin NixOS 26.05 (`nixpkgs` `nixos-26.05`) and Home Manager 26.05 (`release-26.05`); compose host and user configuration. |
-| `hosts/nixlab/default.nix` | Host name, Hyper-V host module, UEFI/systemd-boot settings, host state version. |
-| `hosts/nixlab/hardware-configuration.nix` | Per-machine filesystems, swap, initrd modules, and platform. **Currently a template; replace it with generated hardware configuration before activation.** |
-| `modules/nixos/` | Shared NixOS base settings, 14-day garbage-collection policy, user account, and Hyper-V guest support. |
+| `hosts/nixlab/default.nix` | Host name, UEFI/systemd-boot settings, host state version, and Hyper-V software-rendering choice. |
+| `hosts/nixlab/hardware-configuration.nix` | Checked-in machine-specific generated filesystems, initrd modules, platform, and Hyper-V guest enablement. Its device UUIDs are specific to the machine from which it was generated. |
+| `modules/nixos/` | Shared NixOS base settings, 14-day garbage-collection policy, and user account. |
 | `home/josef/` | Home Manager settings for `josef`, including the home state version. |
 | `home/shared/` | Shared user configuration such as Zsh, Git, command-line tools, and Neovim. |
 | `home/shared/sway.nix` | Shared Sway session settings and keybindings, using the system Sway binary. |
-| `home/shared/neovim/config/` | Lua Neovim configuration and lazy.nvim lockfile migrated from the Windows config. |
+| `home/shared/ghostty.nix` | Ghostty terminal enablement and font settings. |
+| `home/shared/neovim/config/` | Lua Neovim configuration and lazy.nvim lockfile. |
+
+NixOS modules own system integration such as the compositor/session and system services; Home Manager owns user applications and configuration such as Ghostty, Rofi, and Sway settings. Some tools are intentionally present in both shared user packages and Neovim's `extraPackages`, because they are useful in the shell as well as from Neovim. `nixfmt` is included as the Nix formatter through the flake formatter and as a Neovim tool.
 
 The VM is expected to boot with UEFI and an EFI System Partition mounted at `/boot`. systemd-boot is unsigned in this setup, so disable Secure Boot in the Hyper-V VM settings. The `ly` login manager offers both the Sway session and a shell console fallback. Sway is configured for keyboard use, with Super/Windows as its modifier. The shared Sway settings apply to all hosts; the `nixlab` host adds `WLR_RENDERER=pixman` for Hyper-V software rendering. SSH is enabled, but password and root SSH login are disabled.
 
@@ -38,7 +41,7 @@ nix-shell -p git --run 'git clone https://github.com/JosefLundqvist/nixos-dotfil
 cd ~/nixos-dotfiles
 ```
 
-Generate hardware configuration on the target VM. The command below writes it to a temporary file first, then installs it into the repository:
+The checked-in hardware configuration contains machine-specific device UUIDs. To use this configuration on another machine, generate and review a fresh hardware configuration on that target before activation. The command below writes it to a temporary file first, then installs it into the repository:
 
 ```sh
 hardware_config="$(mktemp)"
@@ -47,13 +50,13 @@ install -m 0644 "$hardware_config" hosts/nixlab/hardware-configuration.nix
 rm "$hardware_config"
 ```
 
-This replaces the whole template file. Inspect the generated result before proceeding. Confirm that `/`, `/boot`, swap, and any LUKS/other device mappings match this VM; do not assume the template's disk labels or filesystem types describe the installed machine. Keep required generated declarations, including initrd modules, encryption settings, and filesystem configuration.
+This replaces the checked-in hardware configuration. Inspect the generated result before proceeding. Confirm that `/`, `/boot`, swap, and any LUKS/other device mappings match the target machine; do not assume existing UUIDs or filesystem types apply. Keep required generated declarations, including initrd modules, encryption settings, and filesystem configuration.
 
 Before adopting this flake on an older installation, set `system.stateVersion` in `hosts/nixlab/default.nix` and `home.stateVersion` in `home/josef/default.nix` to the versions used by the existing system and Home Manager profile. These compatibility baselines should not be raised as part of routine upgrades.
 
 Back up user configuration that activation could replace or manage. In particular, preserve `~/.config/nvim`, `~/.config/sway`, `~/.config/ghostty`, `~/.config/rofi`, and any unmanaged `~/.zshrc`, `~/.zshenv`, `~/.zprofile`, `~/.gitconfig`, or `~/.config/git/config` before switching. Review the Home Manager options and any existing links before moving data; do not overwrite an existing personal configuration without comparing it.
 
-Nix flakes ignore untracked files when evaluating local source. The template file is already tracked, so replacing it is visible to the flake without staging. If you create a new host or hardware file, add that new file to Git before the first evaluation. For this host, you can stage the generated replacement to review it in Git:
+Nix flakes ignore untracked files when evaluating local source. The hardware configuration is tracked, so replacing it is visible to the flake without staging. If you create a new host or hardware file, add that new file to Git before the first evaluation. You can stage a generated replacement to review it in Git:
 
 ```sh
 git add hosts/nixlab/hardware-configuration.nix
@@ -89,7 +92,7 @@ ip -br address
 
 ## Neovim on NixOS
 
-The Home Manager Neovim module supplies command-line tools and language servers from Nix, with no Mason-managed tool downloads. The Nix package set includes Lua, Nix, TypeScript/JavaScript, Rust (`rust-analyzer`), Svelte (`svelte-language-server`), Tailwind CSS (`tailwindcss-language-server`), C#, and the configured formatter tools. The Windows-only debugger setup is omitted. The config sets `NVIM_NIX_MANAGED=1` in its wrapper so blink.cmp uses its Lua fuzzy implementation and lazy.nvim stores its mutable lockfile under `~/.local/state/nvim/lazy-lock.json`. Plugins are still downloaded by lazy.nvim at runtime, so this setup does not make plugin source fully Nix-reproducible. On first launch, run `:Lazy restore` to install the versions pinned in the copied lockfile.
+The Home Manager Neovim module supplies command-line tools and language servers from Nix. The Nix package set includes Lua, Nix, TypeScript/JavaScript, Rust (`rust-analyzer`), Svelte (`svelte-language-server`), Tailwind CSS (`tailwindcss-language-server`), C#, and formatter tools including `nixfmt` for Nix files. The config sets `NVIM_NIX_MANAGED=1` in its wrapper so blink.cmp uses its Lua fuzzy implementation and lazy.nvim stores its mutable lockfile under `~/.local/state/nvim/lazy-lock.json`. Plugins are still downloaded by lazy.nvim at runtime, so this setup does not make plugin source fully Nix-reproducible. On first launch, run `:Lazy restore` to install the versions pinned in the lockfile.
 
 To keep plugin updates under version control, copy the updated state lockfile back to `home/shared/neovim/config/lazy-lock.json` and commit it:
 
@@ -103,7 +106,7 @@ Treesitter parsers may need to be installed on first use. In Neovim, run:
 :TSInstall lua nix c_sharp javascript typescript json
 ```
 
-All six tools found in the existing Mason installation are available as NixOS 26.05 packages: `oxfmt`, `stylua`, `rust-analyzer`, `svelte-language-server`, `tailwindcss-language-server`, and `typescript-language-server`. To add another server, add its Nix package to `programs.neovim.extraPackages` and enable its lspconfig name in `config/lua/jwl/plugins/lsp.lua`.
+To add another server, add its Nix package to `programs.neovim.extraPackages` and enable its lspconfig name in `config/lua/jwl/plugins/lsp.lua`.
 
 The VM includes the .NET 10 SDK and Roslyn language server for C# editing. The Lua configuration explicitly opens solutions/projects for the packaged Roslyn 5.7 server; it does not use the newer `--autoLoadProjects` flag. When several solutions exist at the workspace root, the first one alphabetically is opened. Clipboard access depends on terminal/display forwarding and clipboard support on the client side. Icons in the UI need a Nerd Font in the terminal host.
 

@@ -1,9 +1,17 @@
 {
+  config,
   lib,
   osConfig,
   pkgs,
   ...
 }:
+let
+  terminal = lib.getExe config.programs.ghostty.package;
+  swayFonts = {
+    names = [ "Iosevka Nerd Font Mono" ];
+    size = 10.0;
+  };
+in
 {
   wayland.windowManager.sway = {
     enable = true;
@@ -15,41 +23,28 @@
 
     config = {
       modifier = "Mod4"; # Super / Windows key
-      terminal = "${pkgs.ghostty}/bin/ghostty";
-      menu = "${pkgs.rofi}/bin/rofi -show drun";
-      fonts = {
-        names = [ "Iosevka Nerd Font Mono" ];
-        size = 10.0;
-      };
+      inherit terminal;
+      menu = "${lib.getExe config.programs.rofi.finalPackage} -show drun";
+      fonts = swayFonts;
       input."type:keyboard".xkb_layout = "us";
       keybindings = lib.mkOptionDefault {
-        "Mod4+Shift+l" = "exec ${pkgs.swaylock}/bin/swaylock -f -c 1e1e1e";
+        "${config.wayland.windowManager.sway.config.modifier}+Shift+l" = "exec ${pkgs.swaylock}/bin/swaylock -f -c 1e1e1e";
       };
       bars = [
         {
           position = "bottom";
           statusCommand = "${pkgs.i3status}/bin/i3status";
           trayOutput = "primary";
-          fonts = {
-            names = [ "Iosevka Nerd Font Mono" ];
-            size = 10.0;
-          };
+          fonts = swayFonts;
         }
       ];
     };
   };
 
-  programs.ghostty = {
-    enable = true;
-    settings = {
-      font-family = "Iosevka Nerd Font Mono";
-      font-size = 12;
-    };
-  };
   programs.rofi = {
     enable = true;
     modes = [ "drun" ];
-    terminal = "${pkgs.ghostty}/bin/ghostty";
+    inherit terminal;
   };
 
   programs.i3status.enable = true;
