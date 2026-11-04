@@ -1,4 +1,4 @@
-{ pkgs, osConfig, ... }:
+{ pkgs, osConfig, piPackage, ... }:
 {
   imports = [
     ./neovim
@@ -23,7 +23,7 @@
     jq
     lazygit
     ripgrep
-    pi-coding-agent
+    piPackage
     librewolf
     nerd-fonts.iosevka
   ];
