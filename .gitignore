@@ -1,0 +1,6 @@
+result
+result-*
+*.qcow2
+*.vhd
+*.vhdx
+.direnv/
