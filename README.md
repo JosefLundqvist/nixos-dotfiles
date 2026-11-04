@@ -10,6 +10,7 @@ Flake-based NixOS and Home Manager configuration for the `josef` account. The cu
 | `hosts/nixlab/default.nix` | Host name, UEFI/systemd-boot settings, host state version, and Hyper-V software-rendering choice. |
 | `hosts/nixlab/hardware-configuration.nix` | Checked-in machine-specific generated filesystems, initrd modules, platform, and Hyper-V guest enablement. Its device UUIDs are specific to the machine from which it was generated. |
 | `modules/nixos/` | Shared NixOS base settings, 14-day garbage-collection policy, and user account. |
+| `modules/nixos/keyboard.nix` | System-wide Kanata keyboard remapping, ported from `Default.ahk`. |
 | `home/josef/` | Home Manager settings for `josef`, including the home state version. |
 | `home/shared/` | Shared user configuration such as Zsh, Git, command-line tools, and Neovim. |
 | `home/shared/sway.nix` | Shared Sway session settings and keybindings, using the system Sway binary. |
@@ -125,6 +126,31 @@ The shared Home Manager configuration manages Sway's settings, with `Mod4` (Supe
 | Super+Shift+L | Lock the session |
 
 Use the built-in shell session in ly when you need a console instead of Sway.
+
+## Keyboard remapping
+
+The system Kanata service, `kanata-default`, remaps keyboards exposed through evdev, including the Hyper-V basic console keyboard. The mappings assume the existing US layouts: Sway in `home/shared/sway.nix` and the Linux console in `modules/nixos/base.nix`. Either Shift key selects the shifted mappings. Other keys keep their usual behavior, and modifiers remain available.
+
+| Physical key | Output |
+| --- | --- |
+| CapsLock | Left Ctrl |
+| `1` through `0` | `! [ { ( & = ) } ] *` |
+| Shift+`1` through Shift+`0` | `1 2 3 4 5 6 7 8 9 0` |
+| `=` / Shift+`=` | `%` / `+` |
+| `[` / Shift+`[` | `$` / `^` |
+| `]` / Shift+`]` | `@` / `#` |
+
+Sway shortcuts receive the remapped output. For example, Super+Shift+1 emits Super+1 and switches to workspace 1; Super+1 emits Super+Shift+1. The Sway shortcuts themselves are unchanged.
+
+Check the service status and logs, or stop it temporarily for the current boot:
+
+```sh
+systemctl status kanata-default.service
+journalctl -u kanata-default.service
+sudo systemctl stop kanata-default.service
+```
+
+When adding `modules/nixos/keyboard.nix`, add it to Git before evaluating the flake because flakes ignore untracked files.
 
 ## Routine changes and maintenance
 
