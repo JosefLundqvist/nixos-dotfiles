@@ -11,6 +11,7 @@ Flake-based NixOS and Home Manager configuration for the `josef` account. The cu
 | `hosts/nixlab/hardware-configuration.nix` | Checked-in machine-specific generated filesystems, initrd modules, platform, and Hyper-V guest enablement. Its device UUIDs are specific to the machine from which it was generated. |
 | `modules/nixos/` | Shared NixOS base settings, 14-day garbage-collection policy, and user account. |
 | `modules/nixos/keyboard.nix` | System-wide Kanata keyboard remapping, ported from `Default.ahk`. |
+| `modules/nixos/containers.nix` | Podman engine and the Podman backend for declarative OCI containers. |
 | `home/josef/` | Home Manager settings for `josef`, including the home state version. |
 | `home/shared/` | Shared user configuration such as Zsh, Git, command-line tools, and Neovim. |
 | `home/shared/sway.nix` | Shared Sway session settings and keybindings, using the system Sway binary. |
@@ -20,6 +21,33 @@ Flake-based NixOS and Home Manager configuration for the `josef` account. The cu
 NixOS modules own system integration such as the compositor/session and system services; Home Manager owns user applications and configuration such as Ghostty, Rofi, and Sway settings. Some tools are intentionally present in both shared user packages and Neovim's `extraPackages`, because they are useful in the shell as well as from Neovim. `nixfmt` is included as the Nix formatter through the flake formatter and as a Neovim tool.
 
 The VM is expected to boot with UEFI and an EFI System Partition mounted at `/boot`. systemd-boot is unsigned in this setup, so disable Secure Boot in the Hyper-V VM settings. The `ly` login manager offers both the Sway session and a shell console fallback. Sway is configured for keyboard use, with Super/Windows as its modifier. The shared Sway settings apply to all hosts; the `nixlab` host adds `WLR_RENDERER=pixman` for Hyper-V software rendering. SSH is enabled, but password and root SSH login are disabled.
+
+## OCI containers
+
+`modules/nixos/containers.nix` enables Podman, selects it as the NixOS OCI container backend, and enables DNS on Podman's default network. Declarative OCI containers run as rootful system services by default. Use interactive `podman` commands as your user for rootless containers, which have separate containers and image storage.
+
+For example, add this to a NixOS module to run nginx and publish it only on localhost:
+
+```nix
+virtualisation.oci-containers.containers.nginx = {
+  image = "docker.io/library/nginx:alpine";
+  ports = [ "127.0.0.1:8080:80" ];
+};
+```
+
+The nginx example is not enabled by the shared module. Use explicit version tags for deliberate upgrades, or pin images by digest for reproducible deployments. Add the new shared module to Git before evaluating this Git flake, because flakes ignore untracked files:
+
+```sh
+git add modules/nixos/containers.nix
+```
+
+After adding a container, add any other new module files to Git as well. Rebuild the system, then inspect running containers and the generated systemd service:
+
+```sh
+sudo nixos-rebuild switch --flake .#nixlab
+sudo podman ps
+systemctl status podman-nginx.service
+```
 
 ## Adopt on a fresh NixOS install
 
