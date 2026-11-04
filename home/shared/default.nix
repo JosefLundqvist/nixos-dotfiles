@@ -23,6 +23,8 @@
     jq
     lazygit
     ripgrep
+    pi-coding-agent
+    librewolf
     nerd-fonts.iosevka
   ];
 }
